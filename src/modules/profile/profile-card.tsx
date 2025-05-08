@@ -15,7 +15,7 @@ interface ProfileCardProps {
   user: UserDto;
 }
 
-export default function ProfileCard({ user }: ProfileCardProps) {
+export function ProfileCard({ user }: ProfileCardProps) {
   const getRoleLabel = (role: string) => {
     switch (role) {
       case "TENANT":
