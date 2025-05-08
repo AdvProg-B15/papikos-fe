@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { useOwnerProperties } from "@/hooks/use-owner-properties";
-import PropertyListItem from "@/modules/owner/property-list-item";
+import { PropertyListItem } from "@/modules/owner/property-list-item";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, RefreshCw, Loader2 } from "lucide-react";
@@ -90,7 +90,7 @@ export default function MyPropertiesPage() {
             No properties found
           </h3>
           <p className="text-gray-500 mt-2 mb-6">
-            You haven't added any properties yet
+            You haven&apos;t added any properties yet
           </p>
           <Link href="/my-properties/new">
             <Button>
