@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
-import { useChatRooms } from "@/hooks/use-chat-rooms";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,18 +12,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Menu, X, MessageSquare } from "lucide-react";
-import NotificationDropdown from "@/modules/notifications/notification-dropdown";
 
 export default function Header() {
   const { isAuthenticated, user, logout } = useAuth();
-  const { chatRooms } = useChatRooms();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Calculate total unread messages
-  const totalUnreadMessages = chatRooms.reduce(
-    (total, room) => total + (room.unreadCount || 0),
-    0
-  );
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -90,13 +81,7 @@ export default function Header() {
                   className="text-gray-600 hover:text-teal-600 relative"
                 >
                   <MessageSquare size={20} />
-                  {totalUnreadMessages > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                      {totalUnreadMessages > 9 ? "9+" : totalUnreadMessages}
-                    </span>
-                  )}
                 </Link>
-                <NotificationDropdown />
               </>
             )}
           </nav>
@@ -201,18 +186,6 @@ export default function Header() {
 
               {isAuthenticated && (
                 <>
-                  <Link
-                    href="/chat"
-                    className="text-gray-600 hover:text-teal-600 flex items-center"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <span>Messages</span>
-                    {totalUnreadMessages > 0 && (
-                      <span className="ml-2 bg-teal-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                        {totalUnreadMessages > 9 ? "9+" : totalUnreadMessages}
-                      </span>
-                    )}
-                  </Link>
                   <Link
                     href="/notifications"
                     className="text-gray-600 hover:text-teal-600"
