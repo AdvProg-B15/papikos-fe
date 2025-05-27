@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, AuthData } from '@/types';
 import apiClient from '@/services/apiClient';
 import { useRouter } from 'next/navigation'; // For redirection
+import { getCurrentUser } from '@/services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -23,24 +24,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('accessToken');
-    const storedUserString = localStorage.getItem('user');
-    
-    if (storedToken && storedUserString) {
-      try {
-        const storedUser = JSON.parse(storedUserString);
-        setUser(storedUser);
-        setToken(storedToken);
-        // Optionally: verify token with backend here, for now assume it's valid if present
-        // For example:
-        // verifyTokenOnLoad(storedToken, storedUser);
-      } catch (error) {
-        console.error("Failed to parse stored user data:", error);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('user');
+    const loadUserFromStorage = async () => {
+      const storedToken = localStorage.getItem('accessToken');
+      const storedUserString = localStorage.getItem('user');
+
+      if (storedToken) {
+        try {
+          // Set token for apiClient immediately
+          apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+          const response = await getCurrentUser(); // Use /api/v1/user/me
+          
+          if (response.status === 200 && response.data) {
+            setUser(response.data); // Use fresh user data from API
+            setToken(storedToken);
+            localStorage.setItem('user', JSON.stringify(response.data)); // Update stored user
+          } else {
+            // Token might be invalid or expired
+            throw new Error(response.message || "Failed to verify session");
+          }
+        } catch (error) {
+          console.error("Session verification failed:", error);
+          // Clear invalid token/user from storage and state
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('user');
+          setUser(null);
+          setToken(null);
+          delete apiClient.defaults.headers.common['Authorization'];
+          // Optionally, redirect to login if not on a public page
+          // if (router.pathname !== '/login' && router.pathname !== '/register-tenant' etc.) {
+          //    router.push('/login');
+          // }
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    loadUserFromStorage();
   }, []);
 
   // Example function to verify token on load (call this inside useEffect)
