@@ -1,8 +1,10 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { Toaster } from "@/components/ui/toaster"; // We'll install this later
+import { Toaster as SonnerToaster } from "@/components/ui/sonner"; // ShadCN will create this wrapper
+import { AuthProvider } from "@/store/authStore";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -28,8 +30,10 @@ export default function RootLayout({
           fontSans.variable
         )}
       >
-        {children}
-        <Toaster /> {/* For ShadCN Toasts */}
+        <AuthProvider> {/* Wrap children with AuthProvider */}
+          {children}
+        </AuthProvider>
+        <SonnerToaster richColors position="top-right" />
       </body>
     </html>
   );
