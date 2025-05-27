@@ -183,3 +183,21 @@ export interface PayRequest {
   amount: number; // This amount should typically match the rental's due amount
 }
 
+export interface UpdateRentalRequest {
+  submittedTenantName?: string;
+  submittedTenantPhone?: string;
+  rentalStartDate?: string; // YYYY-MM-DD
+  rentalDurationMonths?: number;
+}
+
+// Enum for Rental Status (optional, but good for consistency)
+export enum RentalStatus {
+  PENDING_APPROVAL = "PENDING_APPROVAL",
+  APPROVED = "APPROVED", // Might imply payment pending
+  ACTIVE = "ACTIVE",     // Payment made, tenant occupying
+  REJECTED = "REJECTED",
+  CANCELLED_BY_TENANT = "CANCELLED_BY_TENANT",
+  CANCELLED_BY_OWNER = "CANCELLED_BY_OWNER",
+  COMPLETED = "COMPLETED", // Rental period ended
+  PAYMENT_PENDING = "PAYMENT_PENDING" // If there's a step after approval before active
+}
