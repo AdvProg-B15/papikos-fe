@@ -153,3 +153,33 @@ export interface SendVacancyNotificationRequest {
   title: string;
   message: string;
 }
+
+export interface Balance {
+  userId: string;
+  balance: number;
+  updatedAt: string; // ISO Date string
+}
+
+export interface Transaction {
+  transactionId: string;
+  userId: string; // The user whose balance this transaction affected primarily
+  transactionType: string; // e.g., "TOPUP", "PAYMENT", "REFUND"
+  amount: number;
+  status: string; // e.g., "COMPLETED", "PENDING", "FAILED"
+  relatedRentalId: string | null;
+  payerUserId: string | null; // For PAYMENT, this is the tenant
+  payeeUserId: string | null; // For PAYMENT, this is the owner
+  notes: string | null;
+  createdAt: string; // ISO Date string
+  updatedAt: string; // ISO Date string
+}
+
+export interface TopUpRequest {
+  amount: number;
+}
+
+export interface PayRequest {
+  rentalId: string;
+  amount: number; // This amount should typically match the rental's due amount
+}
+
