@@ -21,6 +21,12 @@ export const createKos = async (data: CreateKosRequest): Promise<ApiGeneralRespo
   return response.data;
 };
 
+// GET /api/v1/{kosId} (Get Kos by Id)
+export const getKosById = async (kosId: string): Promise<ApiGeneralResponse<Kos>> => {
+  const response = await apiClient.get<ApiGeneralResponse<Kos>>(`/api/v1/${kosId}`);
+  return response.data;
+};
+
 // GET /api/v1/my (Get My Kos [OWNER])
 export const getMyKos = async (): Promise<ApiGeneralResponse<Kos[]>> => {
   const response = await apiClient.get<ApiGeneralResponse<Kos[]>>('/api/v1/my');

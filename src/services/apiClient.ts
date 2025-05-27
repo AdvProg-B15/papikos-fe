@@ -2,31 +2,35 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // Helper to determine base URL based on path
 const getBaseUrl = (path: string): string | undefined => {
-  if (path.startsWith('/api/v1/login') || path.startsWith('/api/v1/owner/') || path.startsWith('/api/v1/tenant/') || path.startsWith('/api/v1/user/') || path.startsWith('/api/v1/verify')) {
+  if (path.startsWith('/api/v1/login') || 
+      path.startsWith('/api/v1/owner/') || 
+      path.startsWith('/api/v1/tenant/') || 
+      path.startsWith('/api/v1/user/') || 
+      path.startsWith('/api/v1/verify')) {
     return process.env.NEXT_PUBLIC_AUTH_URL;
   }
-  if (path.startsWith('/api/v1/notifications')) {
+  // Corrected: Wishlist and Notifications go to NOTIFICATION_URL
+  if (path.startsWith('/api/v1/wishlist') || path.startsWith('/api/v1/notifications')) {
     return process.env.NEXT_PUBLIC_NOTIFICATION_URL;
   }
   if (path.startsWith('/api/v1/payment')) {
     return process.env.NEXT_PUBLIC_PAYMENT_URL;
   }
-  if (path.includes('/messages')) { // Assuming /api/v1/{roomId}/messages is chat
+  if (path.includes('/messages') && (path.startsWith('/api/v1/') && path.endsWith('/messages') || path.includes('/message/'))) { 
+    // More specific check for chat: /api/v1/{roomId}/messages or /api/v1/{roomId}/message/{messageId}
     return process.env.NEXT_PUBLIC_CHAT_URL;
   }
   if (path.startsWith('/api/v1/rentals')) {
     return process.env.NEXT_PUBLIC_RENTAL_URL;
   }
-  // Default to KOS_URL for paths like /api/v1 (get all kos), /api/v1/my, /api/v1/{kosId}, /api/v1/wishlist
-  // This covers /api/v1 (for Kos), /api/v1/my (Kos), /api/v1/{kosId} (Kos), /api/v1/wishlist
-  if (path.startsWith('/api/v1')) {
-     // Wishlist is part of kos service in the OpenAPI spec (under kosUrl server)
-     // Let's assume wishlist and general kos operations are under KOS_URL
+  // Default to KOS_URL for general Kos operations: /api/v1 (get all kos), /api/v1/my, /api/v1/{kosId}
+  if (path.startsWith('/api/v1')) { 
+    // This will now correctly only catch Kos-specific endpoints like /api/v1 (for all Kos), /api/v1/my, /api/v1/{kosId}
     return process.env.NEXT_PUBLIC_KOS_URL;
   }
-  // Fallback or throw error if no match
-  console.warn(`No base URL determined for path: ${path}`);
-  return undefined; // Or throw an error: throw new Error(`Cannot determine base URL for path: ${path}`);
+  
+  console.warn(`No base URL determined for path: ${path}. Request might fail or use relative path.`);
+  return undefined; // Or throw an error
 };
 
 const apiClient: AxiosInstance = axios.create({
