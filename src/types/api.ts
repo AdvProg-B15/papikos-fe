@@ -201,3 +201,25 @@ export enum RentalStatus {
   COMPLETED = "COMPLETED", // Rental period ended
   PAYMENT_PENDING = "PAYMENT_PENDING" // If there's a step after approval before active
 }
+
+export interface ChatMessage {
+  messageId: string;
+  roomId: string;
+  senderUserId: string;
+  content: string;
+  createdAt: string; // ISO Date string
+  updatedAt: string; // ISO Date string
+  edited: boolean;
+  deleted: boolean;
+}
+
+export interface SendMessageRequest {
+  content: string;
+}
+
+// For editing, the API spec has `PUT /{roomId}/message/{messageId}` with an empty request body `schema: {}`.
+// This is unusual. Usually, it would take the new content.
+// Assuming the backend expects the new content in the body.
+export interface EditMessageRequest {
+  content: string;
+}
