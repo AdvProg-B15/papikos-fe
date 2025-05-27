@@ -1,0 +1,1 @@
+import { getWishlist, removeFromWishlist } from "@/services/notificationService"; // New

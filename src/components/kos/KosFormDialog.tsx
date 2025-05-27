@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Control } from "react-hook-form"; // Import Control
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast as sonnerToast } from "sonner";
@@ -32,20 +32,21 @@ import { Kos, CreateKosRequest, UpdateKosRequest } from "@/types";
 import { createKos, updateKos } from "@/services/kosService";
 
 // Schema for creating/editing Kos
+// This schema should reflect all fields present in the form.
 const kosFormSchema = z.object({
   name: z.string().min(3, { message: "Name must be at least 3 characters." }),
   address: z.string().min(5, { message: "Address is required." }),
-  description: z.string().optional(),
+  description: z.string().optional().or(z.literal('')), // Allow empty string, map to null/undefined for API
   numRooms: z.coerce.number().int().positive({ message: "Number of rooms must be a positive integer." }),
   monthlyRentPrice: z.coerce.number().positive({ message: "Monthly rent price must be positive." }),
-  occupiedRooms: z.coerce.number().int().min(0, { message: "Occupied rooms cannot be negative." }).optional(), // Optional on create, required on update
+  occupiedRooms: z.coerce.number().int().min(0, { message: "Occupied rooms cannot be negative." }), // Not optional in form, default to 0
   isListed: z.boolean().default(true),
-}).refine(data => data.occupiedRooms === undefined || data.numRooms >= data.occupiedRooms, {
+}).refine(data => data.numRooms >= data.occupiedRooms, { // Simplified refine, occupiedRooms always a number
     message: "Occupied rooms cannot exceed total number of rooms.",
     path: ["occupiedRooms"],
 });
 
-
+// This is the type for the form's data structure
 type KosFormValues = z.infer<typeof kosFormSchema>;
 
 interface KosFormDialogProps {
@@ -56,82 +57,83 @@ interface KosFormDialogProps {
 }
 
 export default function KosFormDialog({ isOpen, onClose, kosData, onSuccess }: KosFormDialogProps) {
-  const form = useForm<KosFormValues>({
+  const form = useForm<KosFormValues>({ // Explicitly use KosFormValues
     resolver: zodResolver(kosFormSchema),
     defaultValues: {
       name: "",
       address: "",
       description: "",
       numRooms: 1,
-      monthlyRentPrice: 0,
+      monthlyRentPrice: 100000,
       occupiedRooms: 0,
       isListed: true,
     },
   });
 
   useEffect(() => {
-    if (kosData) {
-      form.reset({
-        name: kosData.name,
-        address: kosData.address,
-        description: kosData.description || "",
-        numRooms: kosData.numRooms,
-        monthlyRentPrice: kosData.monthlyRentPrice,
-        occupiedRooms: kosData.occupiedRooms,
-        isListed: kosData.isListed,
-      });
-    } else {
-      form.reset({ // Default for new Kos
-        name: "",
-        address: "",
-        description: "",
-        numRooms: 1,
-        monthlyRentPrice: 100000, // Example default
-        occupiedRooms: 0,
-        isListed: true,
-      });
+    if (isOpen) { // Only reset form when dialog opens or kosData changes while open
+        if (kosData) {
+        form.reset({
+            name: kosData.name,
+            address: kosData.address,
+            description: kosData.description || "",
+            numRooms: kosData.numRooms,
+            monthlyRentPrice: kosData.monthlyRentPrice,
+            occupiedRooms: kosData.occupiedRooms,
+            isListed: kosData.isListed,
+        });
+        } else {
+        form.reset({
+            name: "",
+            address: "",
+            description: "",
+            numRooms: 1,
+            monthlyRentPrice: 100000,
+            occupiedRooms: 0,
+            isListed: true,
+        });
+        }
     }
-  }, [kosData, form, isOpen]); // re-run when isOpen changes to reset form if it was closed and reopened
+  }, [kosData, isOpen, form]); // Added isOpen to deps
 
   const onSubmit = async (data: KosFormValues) => {
     try {
       let response;
+      const commonData = {
+        name: data.name,
+        address: data.address,
+        description: data.description === "" ? null : data.description, // Map empty string to null
+        numRooms: data.numRooms,
+        monthlyRentPrice: data.monthlyRentPrice,
+      };
+
       if (kosData) { // Editing existing Kos
         const updatePayload: UpdateKosRequest = {
-          name: data.name,
-          address: data.address,
-          // description: data.description, // API spec for PATCH doesn't list description explicitly, but it should be updatable
-          numRooms: data.numRooms,
-          monthlyRentPrice: data.monthlyRentPrice,
+          ...commonData,
           occupiedRooms: data.occupiedRooms,
-          // isListed: data.isListed, // API spec for PATCH doesn't list isListed, but it should be updatable
+          isListed: data.isListed,
         };
-        // Add optional fields only if they differ or are present
-        if (data.description !== kosData.description) updatePayload.description = data.description;
-        if (data.isListed !== kosData.isListed) updatePayload.isListed = data.isListed;
-
-
         response = await updateKos(kosData.id, updatePayload);
         sonnerToast.success(response.message || "Kos property updated successfully!");
       } else { // Creating new Kos
+        // CreateKosRequest from spec only has name, address, numRooms, monthlyRentPrice
+        // We'll include description if API supports it (made optional in type)
         const createPayload: CreateKosRequest = {
-          name: data.name,
-          address: data.address,
-          // description: data.description, // API spec for POST doesn't list description as required but it's good to have
-          numRooms: data.numRooms,
-          monthlyRentPrice: data.monthlyRentPrice,
-          // isListed: data.isListed, // not in CreateKosRequest, set by backend default likely
+          name: data.name, // required
+          address: data.address, // required
+          numRooms: data.numRooms, // required
+          monthlyRentPrice: data.monthlyRentPrice, // required
+          description: data.description === "" ? null : data.description, // optional
         };
-        if (data.description) createPayload.description = data.description;
-        // For create, occupiedRooms is not in CreateKosRequest, isListed might be backend default
-
+        // `isListed` and `occupiedRooms` are NOT part of CreateKosRequest per spec.
+        // Backend should handle their defaults on creation.
         response = await createKos(createPayload);
         sonnerToast.success(response.message || "Kos property created successfully!");
       }
 
       if (response.data) {
         onSuccess(response.data);
-        onClose(); // Close dialog on success
+        onClose();
       } else {
          sonnerToast.error(response.message || "Operation failed. No data returned.");
       }
@@ -140,17 +142,9 @@ export default function KosFormDialog({ isOpen, onClose, kosData, onSuccess }: K
       sonnerToast.error(errorMessage);
     }
   };
-  
-  // Need to refine UpdateKosRequest and CreateKosRequest types if description/isListed are part of them.
-  // For now, adding them conditionally to the payload.
-  // The OpenAPI spec for `PATCH /api/v1/{kosId}` requestBody only explicitly lists:
-  // name, address, occupiedRooms, numRooms, monthlyRentPrice.
-  // The `POST /api/v1` requestBody only lists: name, address, numRooms, monthlyRentPrice.
-  // This implies description and isListed might be handled differently or are missing from request spec.
-  // Assuming they *can* be sent for now.
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{kosData ? "Edit Kos Property" : "Add New Kos Property"}</DialogTitle>
@@ -160,8 +154,9 @@ export default function KosFormDialog({ isOpen, onClose, kosData, onSuccess }: K
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            {/* Name Field */}
             <FormField
-              control={form.control}
+              control={form.control} // No 'as Control<KosFormValues>' needed usually
               name="name"
               render={({ field }) => (
                 <FormItem>
@@ -171,6 +166,7 @@ export default function KosFormDialog({ isOpen, onClose, kosData, onSuccess }: K
                 </FormItem>
               )}
             />
+            {/* Address Field */}
             <FormField
               control={form.control}
               name="address"
@@ -182,17 +178,19 @@ export default function KosFormDialog({ isOpen, onClose, kosData, onSuccess }: K
                 </FormItem>
               )}
             />
+            {/* Description Field */}
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl><Textarea placeholder="Brief description of the property..." {...field} /></FormControl>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl><Textarea placeholder="Brief description of the property..." {...field} value={field.value ?? ""} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {/* numRooms & occupiedRooms */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -212,12 +210,12 @@ export default function KosFormDialog({ isOpen, onClose, kosData, onSuccess }: K
                   <FormItem>
                     <FormLabel>Occupied Rooms</FormLabel>
                     <FormControl><Input type="number" {...field} /></FormControl>
-                     <FormDescription>Required for updates, defaults to 0 on create.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+            {/* monthlyRentPrice Field */}
              <FormField
                 control={form.control}
                 name="monthlyRentPrice"
@@ -229,29 +227,32 @@ export default function KosFormDialog({ isOpen, onClose, kosData, onSuccess }: K
                   </FormItem>
                 )}
               />
-             <FormField
-                control={form.control}
-                name="isListed"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Make this property publicly listed?
-                      </FormLabel>
-                      <FormDescription>
-                        Uncheck if you want to hide it from public listings temporarily.
-                      </FormDescription>
-                    </div>
-                     <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* isListed Field - Only relevant for updates according to strict API spec */}
+            {kosData && ( // Conditionally render for edit mode, as it's not in CreateKosRequest
+                <FormField
+                    control={form.control}
+                    name="isListed"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                        <FormControl>
+                        <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                        />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                        <FormLabel>
+                            Make this property publicly listed?
+                        </FormLabel>
+                        <FormDescription>
+                            Uncheck if you want to hide it from public listings temporarily.
+                        </FormDescription>
+                        </div>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            )}
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>

@@ -55,14 +55,17 @@ export interface CreateKosRequest {
   address: string;
   numRooms: number;
   monthlyRentPrice: number;
+  description?: string | null;
 }
 
 export interface UpdateKosRequest {
   name?: string;
   address?: string;
-  occupiedRooms?: number;
+  description?: string | null;
   numRooms?: number;
   monthlyRentPrice?: number;
+  occupiedRooms?: number;
+  isListed?: boolean;
 }
 
 // Add more types as needed for other entities (Wishlist, Notification, Payment, Chat, Rental)
@@ -112,4 +115,41 @@ export interface PaginatedResponse<T> {
   number: number;
   sort: any[]; // Duplicate of pageable.sort
   empty: boolean;
+}
+
+export interface WishlistProperty {
+  propertyId: string;
+  name: string;
+  address: string;
+  monthlyRentPrice: number;
+}
+
+export interface WishlistItem {
+  wishlistItemId: string;
+  tenantUserId: string;
+  property: WishlistProperty;
+  createdAt: string; // ISO Date string "YYYY-MM-DDTHH:mm:ss.SSSSSSZ"
+  propertyId: string; // Duplicate of property.propertyId, but present in spec
+}
+
+export interface AddToWishlistRequest {
+  propertyId: string;
+}
+
+export interface NotificationData {
+  notificationId: string;
+  recipientUserId: string;
+  notificationType: string; // e.g., "VACANCY_UPDATE", "RENTAL_STATUS_CHANGE"
+  title: string;
+  message: string;
+  relatedPropertyId: string; // Kos ID
+  relatedRentalId: string | null;
+  createdAt: string; // ISO Date string
+  read: boolean;
+}
+
+export interface SendVacancyNotificationRequest {
+  relatedPropertyId: string; // Kos ID
+  title: string;
+  message: string;
 }

@@ -6,6 +6,7 @@ import {
   UpdateKosRequest,
 } from '@/types';
 
+
 // GET /api/v1 (Get All Kos)
 export const getAllKos = async (): Promise<ApiGeneralResponse<Kos[]>> => {
   // Note: The spec mentions an optional X-Internal-Token header.
@@ -48,7 +49,3 @@ export const deleteKos = async (kosId: string): Promise<ApiGeneralResponse<null>
   if (response.status === 204) return; // Or return a specific success indicator if needed
   return response.data as ApiGeneralResponse<null>; // If it does return a body
 };
-
-// GET /api/v1/wishlist (Get Wishlist [TENANT]) - Will be used later
-// POST /api/v1/wishlist (Add Wishlist [TENANT]) - Will be used later
-// DELETE /api/v1/wishlist/{propertyId} (Remove Wishlist [TENANT]) - Will be used later
