@@ -16,6 +16,7 @@ import {
 import { toast as sonnerToast } from "sonner";
 import { CheckCircle, AlertTriangle, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
 
 export default function PendingOwnersPage() {
   const { user } = useAuth();

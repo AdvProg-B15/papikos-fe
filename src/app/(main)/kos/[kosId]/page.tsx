@@ -3,12 +3,15 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getKosById } from '@/services/kosService'; // Import the actual service
-import { Kos } from '@/types';
+import { Kos, Rental } from '@/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, BedDouble, DollarSign, Home, Info, Tag, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast as sonnerToast } from 'sonner';
+import { useAuth } from '@/store/authStore';
+import { useRouter } from 'next/router';
+import RentalApplicationDialog from '@/components/rentals/RentalApplicationDialog';
 
 export default function KosDetailPage() {
   const params = useParams();
@@ -16,6 +19,9 @@ export default function KosDetailPage() {
   const [kos, setKos] = useState<Kos | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth(); // Already have this
+  const [isRentalDialogOpen, setIsRentalDialogOpen] = useState(false);
+  const router = useRouter(); // For redirecting
 
   useEffect(() => {
     if (kosId) {
@@ -41,6 +47,18 @@ export default function KosDetailPage() {
       fetchKosDetail();
     }
   }, [kosId]);
+
+    const handleRentalApplicationSuccess = (newRental: Rental) => {
+    setIsRentalDialogOpen(false);
+    // Optionally, redirect to "My Rentals" page or show another message
+    sonnerToast.info(`Application for ${newRental.kosName} submitted. Check "My Rentals" for status.`, {
+        action: {
+            label: 'View My Rentals',
+            onClick: () => router.push('/rentals/my'),
+        },
+    });
+  };
+
 
   if (isLoading) return (
     <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
@@ -113,14 +131,30 @@ export default function KosDetailPage() {
         <CardFooter className="bg-muted/40 px-6 py-4 print:hidden">
           {/* Buttons for "Apply for Rental", "Add to Wishlist", "Chat with Owner" will go here later */}
           {/* Only show if rooms available and listed */}
-          {(kos.numRooms - kos.occupiedRooms > 0 && kos.isListed) ? (
-            <Button size="lg" className="w-full sm:w-auto">Apply for Rental (Coming Soon)</Button>
-          ) : (
-            <Button size="lg" className="w-full sm:w-auto" disabled>Currently Unavailable</Button>
-          )}
+          {user?.role === 'TENANT' && kos && (kos.numRooms - kos.occupiedRooms > 0 && kos.isListed) ? (
+    <Button
+        size="lg"
+        className="w-full sm:w-auto"
+        onClick={() => setIsRentalDialogOpen(true)}
+    >
+        Apply for Rental
+    </Button>
+) : user?.role === 'TENANT' && (
+    <Button size="lg" className="w-full sm:w-auto" disabled>
+        {!(kos.numRooms - kos.occupiedRooms > 0) ? "Fully Occupied" : "Not Listed"}
+    </Button>
+)}
           {/* Add to wishlist button here, for tenants */}
         </CardFooter>
       </Card>
+      {kos && (
+    <RentalApplicationDialog
+    isOpen={isRentalDialogOpen}
+    onClose={() => setIsRentalDialogOpen(false)}
+    kos={kos}
+    onSuccess={handleRentalApplicationSuccess}
+    />
+)}
     </div>
   );
 }
